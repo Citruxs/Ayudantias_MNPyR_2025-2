@@ -1,0 +1,311 @@
+---
+title: "Estadísticas descriptivas y visualización de datos"
+author: ""
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+Las estadisticas descriptivas junto con la visualización de datos son herramientas fundamentales para el análisis de datos y el correcto modelado de los problemas. Este documento vamos a explorar las estadisticas censales a escalas geoelectorales de 2020 en México. El conjunto lo podemos encontrar en: https://www.inegi.org.mx/programas/ccpv/2020/#Datos_abiertos
+
+Notemos que no estamos en un script de R convencional, sino que nos encontramos en un documento de R Markdown. Esto nos permite combinar texto con código de R. En la siguiente celda de codigo lo que haremos será limpiar nuestro entorno de trabajo. (Las celdas de codigo pueden ser facilmente agregadas con Ctrl+Alt+I o con el boton de arriba "Insert a new code chunk".)
+
+```{r setup}
+#Limpiamos el entorno de trabajo
+rm(list=ls())
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.dim = c(7, 4)
+  )
+```
+
+Una vez que hemos limpiado nuestro entorno, lo que haremos será cargar el conjunto de datos que ya hemos descargado. Para ello, utilizaremos la función read.csv() de R.
+
+```{r}
+df <- read.csv("~/Desktop/eceg_2020_csv/conjunto_de_datos/INE_DISTRITO_2020.CSV")
+```
+
+Con los datos ya cargados, podemos pasar a explorar la estructura del conjunto de datos con la función str() y visualizar las primeras observaciones con la función head().
+
+```{r include=FALSE}
+str(df)
+```
+
+```{r include=FALSE}
+head(df)
+```
+
+Como podemos ver tenemos 300 observaciones y 225 variables, el significado de las variables por lo general lo podemos encontrar en la documentación del conjunto de datos que estamos utilizando o en defecto tenemos que preguntar a la persona que nos proporcionó los datos. En este caso aofrtunadamente el conjunto si posee una documentación que nos puede ayudar a entender las variables.
+
+Para nuestro caso nos han pedido realizar un análisis descriptivo sobre las siguientes variables y calcular sus respectivos porcentajes:
+
+1. Viviendas particulares habitadas que poseen telefono celular
+2. Viviendas particulares habitadas que disponen de excusado o sanitario
+3. Población sin afiliación a servicios de salud
+4. Hogares censales con persona de referencia mujer
+5. Población de 15 a 130 años analfabeta, sin escolaridad o con primaria incompleta
+
+Para ello nos dirigimos a la documentación de nuestro conjunto de datos para encontrar que variables son las que necesitamos. En este caso las variables son:
+
+- VPH_CEL y TVIVPARHAB para el primer inciso
+
+- VPH_EXCSA y TVIVPARHAB para el segundo inciso
+
+- PSINDER y POBTOT para el tercer inciso
+
+- HOGJEF_F y TOTHOG para el cuarto inciso
+
+- P15YM_AN, P15YM_SE, P15PRI_IN, P_15YMAS
+
+Comencemos con el primer inciso:
+
+# 1. Viviendas particulares habitadas que poseen telefono celular
+
+Para un primer análisis descriptivo podemos utilizar la función summary() de R para obtener un resumen de las estadisticas descriptivas de la variable VPH_CEL. Esta función nos mostrará el mínimo, el primer cuartil, la mediana, la media, el tercer cuartil y el máximo de la variable.
+
+Minimo: El valor más pequeño de la variable
+Primer cuartil: El valor que divide a los datos en dos partes iguales, el 25% de los datos son menores a este valor
+Mediana: El valor que divide a los datos en dos partes iguales, el 50% de los datos son menores a este valor
+Media: El promedio de los datos
+Tercer cuartil: El valor que divide a los datos en dos partes iguales, el 75% de los datos son menores a este valor
+Máximo: El valor más grande de la variable
+
+```{r}
+summary(df$VPH_CEL)
+```
+
+Si dudamos de los resultados de la función, lo podemos calcular nosotros mismos, con las funcion min(), quantile(), median() y max().
+
+```{r}
+min(df$VPH_CEL)
+quantile(df$VPH_CEL, probs = c(0.25, 0.5, 0.75))
+mean(df$VPH_CEL)
+max(df$VPH_CEL)
+```
+
+De lo cual a observar la salida nos damos cuenta que en promedio cada distrito electoral posee 102,586 viviendas particulares habitadas que poseen teléfono celular.
+
+De manera gráfica podemos visualizar la distribución de la variable con un histograma.
+
+```{r}
+hist(df$VPH_CEL, main = "Histograma de VPH_CEL", xlab = "VPH_CEL", ylab = "Frecuencia")
+```
+
+O con un boxplot.
+
+```{r}
+boxplot(df$VPH_CEL, main = "Boxplot de VPH_CEL", ylab = "VPH_CEL")
+```
+
+También podemos visualizar la densidad de la variable con la función density().
+
+```{r}
+plot(density(df$VPH_CEL))
+```
+
+O calcular la función de distribución acumulada empírica con la función ecdf().
+
+```{r}
+plot(ecdf(df$VPH_CEL))
+```
+
+Como ya sabemos agregar nuevas columnas a nuestro dataframe, lo que haremos será agregar una nueva columna que nos indique el porcentaje de viviendas para cada distrito que poseen teléfono celular.
+
+```{r}
+df$VPH_CEL_P <- df$VPH_CEL / df$TVIVPARHAB * 100
+```
+
+```{r}
+summary(df$VPH_CEL_P)
+```
+
+Tenemos que tener cuidado y pararnos un momento para entender que significa este porcentaje, primero veamos que el mínimo es 41.67, esto significa que en todos los distritos electorales de México al menos el 41.67% de las viviendas particulares habitadas poseen teléfono celular. Y en promedio el 89.72% de las viviendas particulares habitadas en cada distrito poseen teléfono celular. También a lo más el 96.77% de las viviendas particulares habitadas en cada distrito poseen teléfono celular.
+
+Para verlo a nivel nacional, lo que haremos será sumar todos los valores de la variable VPH_CEL y dividirlo entre la suma de todos los valores de la variable TVIVPARHAB.
+
+```{r}
+sum(df$VPH_CEL) / sum(df$TVIVPARHAB) * 100
+```
+
+# 2. Viviendas particulares habitadas que disponen de excusado o sanitario
+
+Nuevamente comenzamos usando la función summary() para obtener un resumen de las estadisticas descriptivas de la variable VPH_EXCSA.
+
+```{r}
+summary(df$VPH_EXCSA)
+```
+
+De la salida vemos que en promedio cada distrito electoral tiene 108,552 viviendas particulares habitadas que disponen de excusado o sanitario. Y que por lo menos en todos los distritos electorales 37,751 viviendas tienen excusado o sanitario y a lo mas 242,693 poseen este servicio. Nuevamente podemos observar este resultado con un histograma.
+
+```{r}
+par(mfrow = c(1, 2))
+hist(df$VPH_EXCSA, main = "Histograma de VPH_EXCSA", xlab = "VPH_EXCSA", ylab = "Frecuencia")
+boxplot(df$VPH_EXCSA, main = "Boxplot de VPH_EXCSA", ylab = "VPH_EXCSA")
+```
+
+Y podemos graficar de igual manera la función de densidad y la función de distribución empirica de nuestra variable.
+
+```{r}
+par(mfrow = c(1, 2))
+plot(density(df$VPH_EXCSA))
+plot(ecdf(df$VPH_EXCSA))
+```
+
+Nuevamente pasamos a calcular el porcentaje que se nos ha sido solicitado y lo agregamos a nuestro dataframe.
+
+```{r}
+df$VPH_EXCSA_P <- df$VPH_EXCSA / df$TVIVPARHAB * 100
+
+summary(df$VPH_EXCSA_P)
+```
+
+De la salida podemos observar que en promedio el 93.45% de las viviendas particulares habitadas en cada distrito poseen excusado o sanitario. Y que en todos los distritos electorales al menos el 37.22% de las viviendas particulares habitadas poseen excusado o sanitario. Procedemos ahora a obtener el porcentaje a nivel nacional.
+
+```{r}
+sum(df$VPH_EXCSA) / sum(df$TVIVPARHAB) * 100
+```
+
+No olvidemos que este porcentaje representa el porcentaje de viviendas particulares habitadas que poseen excusado o sanitario en toda la república mexicana.
+
+# 3. Población sin afiliación a servicios de salud
+Repetimos el mismo proceso que hemos realizado hasta el momento, comenzamos con la función summary para obtener un resumen de las estadisticas descriptivas de la variable PSINDER.
+
+```{r}
+summary(df$PSINDER)
+```
+
+De la salida podemos observar que en promedio cada distrito electoral tiene 110,000 personas sin afiliación a servicios de salud. Y que en todos los distritos electorales al menos 39,823 personas no están afiliadas a servicios de salud y a lo más 210,500 personas no están afiliadas a servicios de salud. Nuevamente podemos observar este resultado con un histograma y un boxplot.
+
+```{r}
+par(mfrow = c(1, 2))
+
+hist(df$PSINDER, main = "Histograma de PSINDER", xlab = "PSINDER", ylab = "Frecuencia")
+boxplot(df$PSINDER, main = "Boxplot de PSINDER", ylab = "PSINDER")
+```
+
+Visualizamos tambien la función de densidad y la función de distribución empirica de nuestra variable.
+
+```{r}
+par(mfrow = c(1, 2))
+
+plot(density(df$PSINDER))
+plot(ecdf(df$PSINDER))
+```
+
+Calculamos el porcentaje de personas sin afiliación a setviciso de salud por cada distrito
+
+```{r}
+df$PSINDER_P <- df$PSINDER / df$POBTOT * 100
+```
+
+```{r}
+summary(df$PSINDER_P)
+```
+
+De la salida podemos observar que en promedio el 26.27% de la población en cada distrito no está afiliada a servicios de salud. Y que en todos los distritos electorales al menos el 10.39% de la población no está afiliada a servicios de salud. Procedemos ahora a obtener el porcentaje a nivel nacional.
+
+```{r}
+sum(df$PSINDER) / sum(df$POBTOT) * 100
+```
+
+Así tenemos que el 26.19% de la población en México no está afiliada a servicios de salud.
+
+# 4. Hogares censales con persona de referencia mujer
+
+Obtenemos el summary de la variable PHOGJEF_F.
+
+```{r}
+summary(df$PHOGJEF_F)
+```
+
+De la salida podemos observar que en promedio cada distrito electoral tiene 124,729 hogares censales con persona de referencia mujer. Y que en todos los distritos electorales al menos 50,697 hogares censales tienen persona de referencia mujer y a lo más 212,150 hogares censales tienen persona de referencia mujer. Nuevamente podemos observar este resultado con un histograma y un boxplot.
+
+```{r}
+par(mfrow = c(1, 2))
+
+hist(df$PHOGJEF_F, main = "Histograma de PHOGJEF_F", xlab = "PHOGJEF_F", ylab = "Frecuencia")
+boxplot(df$PHOGJEF_F, main = "Boxplot de PHOGJEF_F", ylab = "PHOGJEF_F")
+```
+
+Visualizamos tambien la función de densidad y la función de distribución empirica de nuestra variable.
+
+```{r}
+par(mfrow = c(1, 2))
+
+plot(density(df$PHOGJEF_F))
+plot(ecdf(df$PHOGJEF_F))
+```
+
+Calculamos ahora el porcentaje de hogares censales con persona de referencia mujer por cada distrito.
+
+```{r}
+df$PHOGJEF_F_P <- df$HOGJEF_F / df$TOTHOG * 100
+
+summary(df$PHOGJEF_F_P)
+```
+
+
+De la salida podemos observar que en promedio el 32.55% de los hogares censales en cada distrito tienen persona de referencia mujer. Y que en todos los distritos electorales al menos el 15.48% de los hogares censales tienen persona de referencia mujer. Procedemos ahora a obtener el porcentaje a nivel nacional.
+
+```{r}
+sum(df$HOGJEF_F) / sum(df$TOTHOG) * 100
+```
+
+A nivel nacional, el 32.58% de los hogares censales tienen persona de referencia mujer.
+
+# 5. Población de 15 a 130 años analfabeta, sin escolaridad o con primaria incompleta
+
+Notemos que en este inciso se nos esta pidicendo información sobre la población que cumpla alguna de estas 3 caracteristicas:
+
+- Analfabeta
+- Sin escolaridad
+- Con primaria incompleta
+
+Primero tenemos que sumar las variables que contiene el total de personas que posee cada caracteristica para obtener el total de personas que cumple alguna de estas 3 caracteristicas.
+
+```{r}
+df$P15YM_AN_SE_PRI <- df$P15YM_AN + df$P15YM_SE + df$P15PRI_IN
+```
+
+Con esta nueva variable podemos obtener el summary de la variable.
+
+```{r}
+summary(df$P15YM_AN_SE_PRI)
+```
+
+Así tenemos que en promedio en cada distrito electoral se tiene 56,767 personas que son analfabetas, que no tienen escolaridad o que tienen primaria incompleta. Y que en todos los distritos electorales al menos 7,696 personas cumplen alguna de estas 3 caracteristicas y a lo más 157,324 personas cumplen alguna de estas 3 caracteristicas. Nuevamente podemos observar este resultado con un histograma y un boxplot.
+
+```{r}
+par(mfrow = c(1, 2))
+
+hist(df$P15YM_AN_SE_PRI, main = "Histograma de P15YM_AN_SE_PRI", xlab = "P15YM_AN_SE_PRI", ylab = "Frecuencia")
+boxplot(df$P15YM_AN_SE_PRI, main = "Boxplot de P15YM_AN_SE_PRI", ylab = "P15YM_AN_SE_PRI")
+```
+
+Visualizamos tambien la función de densidad y la función de distribución empirica de nuestra variable.
+
+```{r}
+par(mfrow = c(1, 2))
+
+plot(density(df$P15YM_AN_SE_PRI))
+plot(ecdf(df$P15YM_AN_SE_PRI))
+```
+
+Con esta variable ya podmeos calcular el porcentaje de personas que cumplen alguna de estas 3 caracteristicas por cada distrito.
+
+```{r}
+df$P15YM_AN_SE_PRI_P <- df$P15YM_AN_SE_PRI / df$P_15YMAS * 100
+```
+
+```{r}
+summary(df$P15YM_AN_SE_PRI_P)
+```
+
+De la salida podemos observar que en promedio el 18.9% de la población en cada distrito es analfabeta, no tiene escolaridad o tiene primaria incompleta. Y que en todos los distritos electorales al menos el 2% de la población cumple alguna de estas 3 características. Procedemos ahora a obtener el porcentaje a nivel nacional.
+
+```{r}
+sum(df$P15YM_AN_SE_PRI) / sum(df$P_15YMAS) * 100
+```
+
+Así tenemos que el 18.12% de la población en México es analfabeta, no tiene escolaridad o tiene primaria incompleta.
+
+Pero tenemos que tener un poco de cuidado, pues el dataset no nos proporciona información sobre si estos grupos son mutuamente excluyentes, es decir si tenemos que una persona solo puede cumplir una de estas 3 características, de otra manera si este supuesto no puede ser comprobado estamos sumando personas que cumplen más de una característica y por lo tanto estamos inflando el porcentaje de personas que cumplen alguna de estas 3 características. ¿Que se te ocurre hacer para poder dar un calculo mas preciso?.

@@ -1,0 +1,109 @@
+---
+title: "Estadisticas descriptivas - Variables categoricas"
+output: pdf_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Normalmente al consultar una base de datos nos encontraremos también con datos categóricos, es decir, variables que toman valores de un conjunto finito de categorías. En este caso, las medidas de tendencia central y dispersión no son útiles, pero podemos utilizar otras medidas como la moda, la frecuencia relativa y la tabla de frecuencias.
+
+Para este caso estaremos trabajando sobre la base de datos del concentrado indicadores de pobreza 2020 que se puede encontrr en: https://www.coneval.org.mx/Medicion/Paginas/Pobreza-municipio-2010-2020.aspx **Anexo estadistico 2010 - 2020**
+
+Primero leemos la base de datos:
+
+```{r}
+data <- read.csv("~/Desktop/Concentrado_indicadores_de_pobreza_2020.csv")
+```
+
+Revisamos la estructura de la base de datos:
+
+```{r}
+str(data)
+```
+
+Nos piden realizar una clasificación del total de individuos que están contenidos en municipios cuya población tiene de 0 a 25% de pobreza, entre 25% y 50% de pobreza y mas de 50% de pobreza.
+
+Veamos que dada la estructura de nuestra base de datos, la columna que nos interesa es de tipo chr, po lo que tenemos que convertirla a numérica para poder realizar la clasificación.
+
+```{r}
+data$Pobreza_porcentaje_2020 <- as.numeric(data$Pobreza_porcentaje_2020)
+```
+
+La alerta que nos envía R es debido a que tenemos en nuestro conjunto de datos valores que no han podido ser convertidos a numéricos, por lo que R automaticamente ha asignado un NA a estos valores.
+
+Como también trabajaremos sobre la población de 2020, tenemos que convertir también esa columna a numérica.
+
+```{r}
+data$Pobreza_personas_2020 <- as.numeric(data$Pobreza_personas_2020)
+```
+
+Para evitar problemas en nuestros cálculos, eliminaremos los valores NA de nuestra base de datos.
+
+```{r}
+data <- data[complete.cases(data),] #Aqui le indicamos a que seleccione los renglones los cuales ninguna de sus columnas presente algun valor NA
+```
+
+
+Así para clasificar a cada municipio segun su porcentaje de pobreza, utilizaremos la función ifelse, que nos permite asignar un valor a una columna dependiendo de una condición.
+
+```{r}
+data$Clasificacion <- ifelse(data$Pobreza_porcentaje_2020 <= 25, "0-25%", ifelse(data$Pobreza_porcentaje_2020 <= 50, "25-50%", "50%+"))
+```
+
+Notemos que esta columna que hemos creado es de tipo chr, por lo que nos conviene mas que sea de tipo factor.
+
+```{r}
+data$Clasificacion <- as.factor(data$Clasificacion)
+```
+
+```{r}
+table(data$Clasificacion)/nrow(data) * 100
+```
+
+De esta tabla podemos observar que el 5.7% de los municipios tienen un porcentaje de pobreza de 0 a 25%, el 25.43% de los municipios tienen un porcentaje de pobreza de 25 a 50% y el 68.73% de los municipios tienen un porcentaje de pobreza mayor a 50%.
+
+Calculemos ahora la cantidad de personas que se encuentra en cada una de nuestras categorías
+
+```{r}
+aggregate(data$Pobreza_personas_2020, by = list(data$Clasificacion), sum)
+```
+
+Veamos que en general el porcentaje de municipios que se encuentra en ca categoria no refleja el porcentaje de personas que se encuentran en cada categoria. Podemos verlo calculando el porcentaje de personas que se encuentran en cada categoria.
+
+```{r}
+aggregate(data$Pobreza_personas_2020, by = list(data$Clasificacion), sum)['x']/sum(data$Pobreza_personas_2020) * 100
+```
+Así podemos interpretar el resultado anterior como que el 9.31% de la población que se encuentra en pobreza está en municipios con un porcentaje de pobreza de 0 a 25%, el 38.82% de la población que se encuentra en pobreza está en municipios con un porcentaje de pobreza de 25 a 50% y el 51.85% de la población que se encuentra en pobreza está en municipios con un porcentaje de pobreza mayor a 50%.
+
+También podemos utilizar la función freq del paquete summarytools para obtener la tabla de frecuencias de una variable categórica.
+
+```{r}
+library(summarytools)
+freq(data$Clasificacion)
+```
+
+
+Hagamos ahora una grafica de barras apiladas para visualizar la cantidad de personas que se encuentran en cada categoria de pobreza por cada estado.
+
+```{r}
+data$Entidad.federativa <- as.factor(data$Entidad.federativa)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x = Entidad.federativa, y = Pobreza_personas_2020, fill = Clasificacion)) + geom_bar(stat = "identity", position = "fill") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Notar que en la gráfica anterior tenemos dos variables categóricas, una que representa la entidad federtiva y otra que representa la clasificación de pobreza.
+
+Veamos ahora la cantidad de municipios que se encuentran en cada categoria de pobreza por cada estado con ayuda de una tabla.
+
+```{r}
+table(data$Entidad.federativa, data$Clasificacion)
+```
+
+
